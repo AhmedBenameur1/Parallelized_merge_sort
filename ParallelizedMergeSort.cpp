@@ -38,7 +38,7 @@ namespace
 int main()
 {
     ThreadPool threadPool;
-    vector<size_t> sizes = {100000, 500000 /*, 1000000, 5000000, 10000000*/};
+    vector<size_t> sizes = {100000, 500000, 1000000, 5000000, 10000000};
 
     cout << "Checking C++ version: " << __cplusplus << "\n";
     cout << "Serial vs Parallel std::sort benchmark (milliseconds)\n\n";
@@ -61,27 +61,16 @@ int main()
                                         { std::sort(std::execution::par,
                                                     v_parallel_1.begin(),
                                                     v_parallel_1.end()); });
+        // serial merge 2 sort with thread pool
+        vector<int> serial_merge = original;
+        double t_serial_merge = benchmark([&]()
+                                          { MergeSort sorter(serial_merge, threadPool); });
         // Parallel 2 sort with thread pool
         vector<int> v_parallel_2 = original;
         double t_parallel_2 = benchmark([&]()
-                                        { MergeSort sorter(v_parallel_2, threadPool); });
-        // vector<int> x(n);
-        // int num = 10;
-        // for (int i = 0; i < 30; i++)
-        // {
-        //     threadPool.addTask([&, i]()
-        //                        { (x[i] = i); }, i % num);
-        // }
-        // cout << "before waiting\n";
-        // threadPool.waitForRunningThreads();
-        // cout << "after waiting\n";
-        // for (int i = 0; i < 30; i++)
-        // {
-        //     cout << x[i] << " ";
-        // }
-        // cout << "\n";
+                                        { MergeSort sorter(v_parallel_2, threadPool, true); });
         // Verify correctness
-        if (v_serial != v_parallel_2 || v_serial != v_parallel_1)
+        if (v_serial != v_parallel_2 || v_serial != v_parallel_1 || v_serial != serial_merge)
         {
             cerr << "ERROR: Sorted arrays do not match!\n";
             return 1;
@@ -89,7 +78,8 @@ int main()
 
         cout << "  Serial:   " << t_serial << " ms\n";
         cout << "  Parallel 1: " << t_parallel_1 << " ms\n";
-        cout << "  Parallel 2: " << t_parallel_2 << " ms\n";
+        cout << "  Serial merge sort: " << t_serial_merge << " ms\n";
+        cout << "  Parallel merge sort: " << t_parallel_2 << " ms\n";
         cout << "-----------------------------\n";
     }
 

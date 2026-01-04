@@ -17,11 +17,11 @@ public:
     ThreadPool();
     ~ThreadPool();
     void processThread(int i);
-    bool isThreadAvailable(int i) const { return _tasks[i].empty(); }
-    size_t getTotalNumberOfThreads() const { return _totalNumberOfThreads; }
+    inline bool isThreadAvailable(int i) const { return _tasks[i].empty(); }
+    inline size_t getTotalNumberOfThreads() const { return _totalNumberOfThreads; }
     void addTask(function<void()> task, int i);
     void waitForPendingTasks();
-    unsigned getNumberOfRunningThreads() const { return _numberOfPendingTasks; }
+    inline unsigned getNumberOfRunningThreads() const { return _numberOfPendingTasks; }
     void increaseNumberOfPendingTasks();
     void decreaseNumberOfPendingTasks();
 

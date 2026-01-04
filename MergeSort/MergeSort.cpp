@@ -7,38 +7,37 @@
 
 using namespace std;
 
-void MergeSort::merge(vector<int> &res, vector<int> &x, vector<int> &y)
+void MergeSort::merge(vector<int> &a, int &left, int &right, vector<int> &previousA)
 {
-    int nn = x.size();
-    int m = y.size();
-    int indx = 0, indy = 0;
-    for (int i = 0; i < nn + m; i++)
+    int mid = (left + right) / 2;
+    int indx = left, indy = mid + 1;
+    for (int i = left; i <= right; i++)
     {
-        if (indx < nn && indy < m)
+        if (indx <= mid && indy <= right)
         {
-            if (x[indx] < y[indy])
+            if (previousA[indx] < previousA[indy])
             {
-                res[i] = x[indx++];
+                a[i] = previousA[indx++];
             }
             else
             {
-                res[i] = y[indy++];
+                a[i] = previousA[indy++];
             }
         }
         else
         {
-            if (indx < nn)
+            if (indx <= mid)
             {
-                res[i] = x[indx++];
+                a[i] = previousA[indx++];
             }
             else
             {
-                res[i] = y[indy++];
+                a[i] = previousA[indy++];
             }
         }
     }
 }
-MergeSort::MergeSort(vector<int> &a, ThreadPool &threadPool)
+MergeSort::MergeSort(vector<int> &a, ThreadPool &threadPool, bool parallelize)
 {
     int n = a.size();
     // range [l,r] and level in the merge sort tree
@@ -60,34 +59,25 @@ MergeSort::MergeSort(vector<int> &a, ThreadPool &threadPool)
     }
     reverse(v.begin(), v.end());
     int i = 0, m = v.size();
+    vector<int> previousA(n);
     while (i < m)
     {
         int j = i + 1;
         while (j < m && get<2>(v[j]) == get<2>(v[i]))
             j++;
-        auto chunk = [&](int l, int r)
+        auto chunk = [this, &a, &previousA, &v](int l, int r)
         {
             for (int k = l; k <= r; k++)
             {
-                auto [left, right, level] = v[k];
+                auto &[left, right, level] = v[k];
                 if (left == right)
                     continue;
                 int mid = (left + right) / 2;
-                vector<int> vl(mid - left + 1), vr(right - mid);
-                for (int k = left; k <= mid; k++)
-                {
-                    vl[k - left] = a[k];
-                }
-                for (int k = mid + 1; k <= right; k++)
-                {
-                    vr[k - mid - 1] = a[k];
-                }
-                vector<int> result(right - left + 1);
-                merge(result, vl, vr);
                 for (int k = left; k <= right; k++)
                 {
-                    a[k] = result[k - left];
+                    previousA[k] = a[k];
                 }
+                merge(a, left, right, previousA);
             }
         };
         // thread pool
@@ -96,22 +86,15 @@ MergeSort::MergeSort(vector<int> &a, ThreadPool &threadPool)
         int chunk_size = max(1, (j - i) / numberOfThreads);
         for (int k = i; k < j; k += chunk_size)
         {
-            int starting = k, ending = min(k + chunk_size - 1, j - 1);
-            threadPool.addTask([chunk, starting, ending]()
-                               { chunk(starting, ending); }, task_id++ % numberOfThreads);
-            // chunk(starting, ending);
+            int l = k, r = min(k + chunk_size - 1, j - 1);
+            if (parallelize)
+                threadPool.addTask([chunk, l, r]()
+                                   { chunk(l, r); }, task_id++ % numberOfThreads);
+            else
+                chunk(l, r);
         }
-        threadPool.waitForPendingTasks();
-        // vector<thread> threads;
-        // for (int k = i; k < j; k += chunk_size)
-        // {
-        //     int starting = k, ending = min(k + chunk_size - 1, j - 1);
-        //     function<void()> task = [chunk, starting, ending]()
-        //     { chunk(starting, ending); };
-        //     threads.push_back(thread(task));
-        // }
-        // for (int k = 0; k < threads.size(); k++)
-        //     threads[k].join();
+        if (parallelize)
+            threadPool.waitForPendingTasks();
         i = j;
     }
 }

@@ -8,7 +8,7 @@ using namespace std;
 class MergeSort
 {
 public:
-    void merge(vector<int> &result, vector<int> &left, vector<int> &right);
-    MergeSort(vector<int> &a, ThreadPool &threadPool);
+    void merge(vector<int> &res, int &left, int &right, vector<int> &previousA);
+    MergeSort(vector<int> &a, ThreadPool &threadPool, bool parallelize = false);
     ~MergeSort();
 };
